@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Setlist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0d0d0d;--surface:#141414;--border:#252525;--dim:#555;
+      --amber:#f5a623;--white:#f0ece4;--green:#3ddc97;
+      --font-d:'Playfair Display',serif;--font-m:'IBM Plex Mono',monospace;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{min-height:100%;background:var(--bg);color:var(--white);font-family:var(--font-m);}
+
+    /* ── HOME ── */
+    #home{display:block;}
+    #song-page{display:none;}
+
+    .site-header{
+      padding:40px 24px 0;display:flex;flex-direction:column;align-items:center;gap:6px;
+      border-bottom:1px solid var(--border);padding-bottom:28px;
+    }
+    .site-title{font-family:var(--font-d);font-size:clamp(2.2rem,6vw,3.8rem);font-weight:700;letter-spacing:-.02em;color:var(--white);}
+    .site-sub{font-size:.6rem;letter-spacing:.35em;color:var(--dim);text-transform:uppercase;}
+
+    /* SEARCH */
+    .search-wrap{padding:20px 24px;max-width:680px;margin:0 auto;width:100%;}
+    .search-input{
+      width:100%;padding:14px 18px;border-radius:10px;
+      background:var(--surface);border:1px solid var(--border);
+      color:var(--white);font-family:var(--font-m);font-size:1rem;
+      outline:none;transition:border-color .2s;
+    }
+    .search-input:focus{border-color:#333;}
+    .search-input::placeholder{color:var(--dim);}
+
+    /* STATS */
+    .stats{text-align:center;font-size:.6rem;letter-spacing:.2em;color:var(--dim);padding:0 24px 16px;text-transform:uppercase;}
+
+    /* SONG LIST */
+    .song-list{max-width:680px;margin:0 auto;padding:0 24px 60px;display:flex;flex-direction:column;gap:2px;}
+    .song-item{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 16px;border-radius:8px;cursor:pointer;
+      border:1px solid transparent;transition:all .12s;
+      background:transparent;gap:12px;
+    }
+    .song-item:hover{background:var(--surface);border-color:var(--border);}
+    .song-item:active{transform:scale(.99);}
+    .song-left{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;}
+    .song-title{font-family:var(--font-d);font-size:1.15rem;font-weight:400;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .song-artist{font-size:.6rem;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .song-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+    .song-key{font-size:.65rem;font-weight:700;color:var(--amber);background:#1a1200;border:1px solid #332200;border-radius:5px;padding:2px 7px;}
+    .song-capo{font-size:.58rem;color:var(--dim);}
+    .song-status{width:6px;height:6px;border-radius:50%;background:var(--border);}
+    .song-status.has-lyrics{background:var(--green);}
+
+    .no-results{text-align:center;padding:60px 24px;color:var(--dim);font-size:.8rem;letter-spacing:.1em;}
+
+    /* ── SONG PAGE ── */
+    .song-header{
+      padding:20px 24px 20px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;gap:16px;position:sticky;top:0;
+      background:rgba(13,13,13,.95);backdrop-filter:blur(12px);z-index:10;
+    }
+    .back-btn{
+      background:none;border:1px solid var(--border);color:var(--dim);
+      border-radius:8px;padding:8px 12px;cursor:pointer;font-family:var(--font-m);
+      font-size:.65rem;letter-spacing:.1em;transition:all .15s;white-space:nowrap;flex-shrink:0;
+    }
+    .back-btn:hover{border-color:#444;color:var(--white);}
+    .song-header-info{flex:1;min-width:0;}
+    .song-page-title{font-family:var(--font-d);font-size:clamp(1.2rem,4vw,1.8rem);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .song-page-artist{font-size:.6rem;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;}
+
+    /* TOOLBAR */
+    .toolbar{
+      padding:12px 24px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      background:var(--surface);
+    }
+    .tool-label{font-size:.55rem;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;}
+    .toggle-chords{
+      padding:6px 14px;border-radius:20px;border:1px solid var(--border);
+      background:var(--bg);color:var(--dim);font-family:var(--font-m);
+      font-size:.65rem;cursor:pointer;transition:all .15s;letter-spacing:.05em;
+    }
+    .toggle-chords.active{background:#001a00;color:var(--green);border-color:#005500;}
+    .transpose-wrap{display:flex;align-items:center;gap:6px;}
+    .t-btn{
+      width:28px;height:28px;border-radius:6px;border:1px solid var(--border);
+      background:var(--bg);color:var(--white);font-family:var(--font-m);
+      font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:all .12s;line-height:1;
+    }
+    .t-btn:hover{border-color:#444;background:var(--surface);}
+    .t-btn:active{transform:scale(.92);}
+    .t-val{font-size:.75rem;font-weight:700;color:var(--amber);min-width:50px;text-align:center;}
+    .key-badge{padding:4px 10px;border-radius:5px;background:#1a1200;border:1px solid #332200;color:var(--amber);font-size:.65rem;font-weight:700;}
+    .capo-info{font-size:.6rem;color:var(--dim);}
+
+    /* LYRICS */
+    .lyrics-wrap{padding:32px 24px 80px;max-width:720px;margin:0 auto;}
+    .lyrics-block{
+      font-family:var(--font-d);font-size:clamp(1.3rem,4vw,1.75rem);
+      line-height:1.9;color:var(--white);white-space:pre-wrap;
+    }
+    .chord{
+      display:inline-block;color:var(--amber);font-family:var(--font-m);
+      font-size:.72em;font-weight:700;position:relative;top:-.1em;
+      margin-right:1px;transition:opacity .2s;
+    }
+    .chords-hidden .chord{display:none;}
+    .section-tag{
+      display:block;font-family:var(--font-m);font-size:.6rem;
+      letter-spacing:.3em;color:var(--dim);text-transform:uppercase;
+      margin:28px 0 6px;
+    }
+    .empty-lyrics{
+      text-align:center;padding:80px 24px;
+      font-family:var(--font-d);font-size:1.4rem;font-style:italic;color:var(--dim);
+    }
+    .empty-hint{font-family:var(--font-m);font-size:.65rem;letter-spacing:.1em;color:#333;margin-top:12px;}
+  </style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home">
+  <div class="site-header">
+    <div class="site-title">Setlist</div>
+    <div class="site-sub">Répertoire de chansons</div>
+  </div>
+  <div class="search-wrap">
+    <input type="search" class="search-input" id="search" placeholder="Rechercher un titre, un artiste…" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="song-list" id="song-list"></div>
+</div>
+
+<!-- SONG PAGE -->
+<div id="song-page">
+  <div class="song-header">
+    <button class="back-btn" onclick="goHome()">← Retour</button>
+    <div class="song-header-info">
+      <div class="song-page-title" id="sp-title"></div>
+      <div class="song-page-artist" id="sp-artist"></div>
+    </div>
+  </div>
+  <div class="toolbar">
+    <span class="tool-label">Accords</span>
+    <button class="toggle-chords active" id="chord-toggle" onclick="toggleChords()">Visibles</button>
+    <span class="tool-label" style="margin-left:8px;">Transposer</span>
+    <div class="transpose-wrap">
+      <button class="t-btn" onclick="transpose(-1)">−</button>
+      <span class="t-val" id="t-val">Original</span>
+      <button class="t-btn" onclick="transpose(+1)">+</button>
+    </div>
+    <span class="key-badge" id="sp-key"></span>
+    <span class="capo-info" id="sp-capo"></span>
+  </div>
+  <div class="lyrics-wrap">
+    <div class="lyrics-block" id="lyrics-block"></div>
+  </div>
+</div>
+
+<script src="songs.js"></script>
+<script>
+// ── CHORD TRANSPOSITION ──
+const SHARP_NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const FLAT_NOTES  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const ENHARMONIC  = {'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb','Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'};
+
+function noteIndex(note) {
+  let i = SHARP_NOTES.indexOf(note);
+  if(i < 0) i = FLAT_NOTES.indexOf(note);
+  return i;
+}
+
+function transposeChord(chord, semitones) {
+  if(semitones === 0) return chord;
+  // Match root + optional sharp/flat + optional minor/maj/dim/sus/aug/add/7 etc
+  return chord.replace(/([A-G][b#]?)/g, (match) => {
+    const idx = noteIndex(match);
+    if(idx < 0) return match;
+    const newIdx = ((idx + semitones) % 12 + 12) % 12;
+    // Use flats if original used flats, else sharps
+    const useFlat = FLAT_NOTES.includes(match) && !SHARP_NOTES.includes(match);
+    return useFlat ? FLAT_NOTES[newIdx] : SHARP_NOTES[newIdx];
+  });
+}
+
+// ── RENDER LYRICS ──
+// Format: [Chord]lyrics text
+// Section tags: {Verse}, {Chorus}, {Bridge} etc
+function renderLyrics(rawLyrics, semitones, showChords) {
+  if(!rawLyrics || !rawLyrics.trim()) {
+    return `<div class="empty-lyrics">Paroles à ajouter…<div class="empty-hint">Éditez songs.js et remplissez le champ lyrics</div></div>`;
+  }
+
+  let html = '';
+  const lines = rawLyrics.split('\n');
+  for(const line of lines) {
+    // Section tag {Verse} {Chorus} etc
+    const secMatch = line.match(/^\{(.+)\}$/);
+    if(secMatch) {
+      html += `<span class="section-tag">${secMatch[1]}</span>`;
+      continue;
+    }
+    // Replace [Chord] with spans
+    const parsedLine = line.replace(/\[([^\]]+)\]/g, (_, chord) => {
+      const transposed = transposeChord(chord, semitones);
+      return `<span class="chord">${transposed}</span>`;
+    });
+    html += parsedLine + '\n';
+  }
+  return html;
+}
+
+// ── STATE ──
+let currentSong = null;
+let transposeVal = 0;
+let chordsVisible = true;
+
+// ── HOME ──
+function buildList(filter='') {
+  const list = document.getElementById('song-list');
+  const stats = document.getElementById('stats');
+  const q = filter.toLowerCase().trim();
+  const filtered = q
+    ? SONGS.filter(s => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q))
+    : SONGS;
+
+  const withLyrics = SONGS.filter(s => s.lyrics && s.lyrics.trim()).length;
+  stats.textContent = q
+    ? `${filtered.length} résultat${filtered.length!==1?'s':''}  ·  ${SONGS.length} chansons  ·  ${withLyrics} avec paroles`
+    : `${SONGS.length} chansons  ·  ${withLyrics} avec paroles`;
+
+  if(filtered.length === 0) {
+    list.innerHTML = `<div class="no-results">Aucun résultat pour "${filter}"</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map((s,i) => {
+    const hasLyrics = s.lyrics && s.lyrics.trim();
+    const keyHtml = s.key ? `<span class="song-key">${s.key}</span>` : '';
+    const capoHtml = s.capo ? `<span class="song-capo">capo ${s.capo}</span>` : '';
+    return `<div class="song-item" onclick="openSong(${SONGS.indexOf(s)})">
+      <div class="song-left">
+        <div class="song-title">${s.title}</div>
+        ${s.artist ? `<div class="song-artist">${s.artist}</div>` : ''}
+      </div>
+      <div class="song-right">
+        ${capoHtml}${keyHtml}
+        <div class="song-status ${hasLyrics?'has-lyrics':''}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── SONG PAGE ──
+function openSong(idx) {
+  currentSong = SONGS[idx];
+  transposeVal = 0;
+  chordsVisible = true;
+
+  document.getElementById('home').style.display = 'none';
+  document.getElementById('song-page').style.display = 'block';
+  window.scrollTo(0,0);
+
+  document.getElementById('sp-title').textContent = currentSong.title;
+  document.getElementById('sp-artist').textContent = currentSong.artist || '';
+  document.getElementById('sp-key').textContent = currentSong.key || '';
+  document.getElementById('sp-capo').textContent = currentSong.capo ? `capo ${currentSong.capo}` : '';
+
+  document.getElementById('chord-toggle').classList.add('active');
+  document.getElementById('chord-toggle').textContent = 'Visibles';
+  document.getElementById('t-val').textContent = 'Original';
+
+  renderPage();
+}
+
+function renderPage() {
+  const block = document.getElementById('lyrics-block');
+  block.innerHTML = renderLyrics(currentSong.lyrics, transposeVal, chordsVisible);
+  block.className = 'lyrics-block' + (chordsVisible ? '' : ' chords-hidden');
+
+  // Update transposed key display
+  const keySpan = document.getElementById('sp-key');
+  if(currentSong.key && transposeVal !== 0) {
+    keySpan.textContent = transposeChord(currentSong.key, transposeVal);
+  } else {
+    keySpan.textContent = currentSong.key || '';
+  }
+}
+
+function toggleChords() {
+  chordsVisible = !chordsVisible;
+  const btn = document.getElementById('chord-toggle');
+  btn.classList.toggle('active', chordsVisible);
+  btn.textContent = chordsVisible ? 'Visibles' : 'Masqués';
+  renderPage();
+}
+
+function transpose(delta) {
+  transposeVal = ((transposeVal + delta) % 12 + 12) % 12;
+  if(transposeVal > 6) transposeVal -= 12; // keep in -6..+6 range
+  const label = transposeVal === 0 ? 'Original' : (transposeVal > 0 ? '+'+transposeVal : String(transposeVal));
+  document.getElementById('t-val').textContent = label;
+  renderPage();
+}
+
+function goHome() {
+  document.getElementById('song-page').style.display = 'none';
+  document.getElementById('home').style.display = 'block';
+  currentSong = null;
+}
+
+// ── SEARCH ──
+document.getElementById('search').addEventListener('input', e => buildList(e.target.value));
+
+// ── KEYBOARD SHORTCUT ──
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && currentSong) goHome();
+});
+
+// ── INIT ──
+buildList();
+</script>
+</body>
+</html>
