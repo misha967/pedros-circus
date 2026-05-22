@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Setlist</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg:#0d0d0d;--surface:#141414;--border:#252525;--dim:#555;
-      --amber:#f5a623;--white:#f0ece4;--green:#3ddc97;
-      --font-d:'Playfair Display',serif;--font-m:'IBM Plex Mono',monospace;
+      --bg:#161616;--surface:#1e1e1e;--border:#2e2e2e;--dim:#888;
+      --amber:#f5a623;--white:#ffffff;--green:#3ddc97;
+      --font-d:'Lato',sans-serif;--font-m:'IBM Plex Mono',monospace;
     }
     *{margin:0;padding:0;box-sizing:border-box;}
     html,body{min-height:100%;background:var(--bg);color:var(--white);font-family:var(--font-m);}
@@ -34,10 +34,10 @@
       outline:none;transition:border-color .2s;
     }
     .search-input:focus{border-color:#333;}
-    .search-input::placeholder{color:var(--dim);}
+    .search-input::placeholder{color:#888;}
 
     /* STATS */
-    .stats{text-align:center;font-size:.6rem;letter-spacing:.2em;color:var(--dim);padding:0 24px 16px;text-transform:uppercase;}
+    .stats{text-align:center;font-size:.65rem;letter-spacing:.15em;color:#999;padding:0 24px 16px;text-transform:uppercase;}
 
     /* SONG LIST */
     .song-list{max-width:680px;margin:0 auto;padding:0 24px 60px;display:flex;flex-direction:column;gap:2px;}
@@ -51,7 +51,7 @@
     .song-item:active{transform:scale(.99);}
     .song-left{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;}
     .song-title{font-family:var(--font-d);font-size:1.15rem;font-weight:400;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .song-artist{font-size:.6rem;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .song-artist{font-size:.72rem;letter-spacing:.05em;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .song-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
     .song-key{font-size:.65rem;font-weight:700;color:var(--amber);background:#1a1200;border:1px solid #332200;border-radius:5px;padding:2px 7px;}
     .song-capo{font-size:.58rem;color:var(--dim);}
@@ -105,8 +105,8 @@
     /* LYRICS */
     .lyrics-wrap{padding:32px 24px 80px;max-width:720px;margin:0 auto;}
     .lyrics-block{
-      font-family:var(--font-d);font-size:clamp(1.3rem,4vw,1.75rem);
-      line-height:1.9;color:var(--white);white-space:pre-wrap;
+      font-family:var(--font-d);font-size:clamp(1.4rem,4vw,1.9rem);
+      line-height:2.1;color:#ffffff;white-space:pre-wrap;font-weight:300;
     }
     .chord{
       display:inline-block;color:var(--amber);font-family:var(--font-m);
@@ -132,7 +132,7 @@
 <div id="home">
   <div class="site-header">
     <div class="site-title">Setlist</div>
-    <div class="site-sub">Répertoire de chansons</div>
+    <div class="site-sub" style="color:#aaa;">Répertoire de chansons</div>
   </div>
   <div class="search-wrap">
     <input type="search" class="search-input" id="search" placeholder="Rechercher un titre, un artiste…" autocomplete="off" spellcheck="false">
@@ -326,6 +326,21 @@ document.getElementById('search').addEventListener('input', e => buildList(e.tar
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && currentSong) goHome();
 });
+
+// ── PLACEHOLDER ALÉATOIRE ──
+const placeholders = SONGS.map(s => s.title);
+function shuffleArr(arr){ return [...arr].sort(()=>Math.random()-.5); }
+let shuffled = shuffleArr(placeholders);
+let pIdx = 0;
+function rotatePlaceholder(){
+  const input = document.getElementById('search');
+  if(document.activeElement === input) return;
+  input.placeholder = shuffled[pIdx % shuffled.length];
+  pIdx++;
+  if(pIdx % shuffled.length === 0) shuffled = shuffleArr(placeholders);
+}
+setInterval(rotatePlaceholder, 2200);
+rotatePlaceholder();
 
 // ── INIT ──
 buildList();
