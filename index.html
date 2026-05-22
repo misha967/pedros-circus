@@ -608,11 +608,6 @@ function openSong(idx) {
   document.getElementById('sp-key').textContent = currentSong.key || '';
   document.getElementById('sp-capo').textContent = currentSong.capo ? `capo ${currentSong.capo}` : '';
 
-  stopAutoScroll();
-  document.getElementById('scroll-progress').style.width = '0%';
-  document.getElementById('scroll-progress').classList.remove('playing');
-  const durMs = parseDuration(currentSong.duration);
-  document.getElementById('sp-duration').textContent = durMs ? formatDuration(durMs) : '';
   document.getElementById('chord-toggle').classList.add('active');
   document.getElementById('chord-toggle').textContent = 'Visibles';
   document.getElementById('t-val').textContent = 'Original';
@@ -756,17 +751,22 @@ function exportSongsJs(){
   showToast('⬇ songs.js téléchargé');
 }
 
-// Override openSong to use merged data
+// Override openSong to use merged data + hook auto-scroll reset
 const _origOpenSong = openSong;
 openSong = function(idx){
   currentSongIdx = idx;
   const merged = getMergedSong(idx);
-  // Temporarily patch SONGS[idx] for renderPage
   const orig = SONGS[idx];
   SONGS[idx] = merged;
   _origOpenSong(idx);
   SONGS[idx] = orig;
   currentSong = merged;
+  // Reset auto-scroll
+  stopAutoScroll();
+  document.getElementById('scroll-progress').style.width = '0%';
+  document.getElementById('scroll-progress').classList.remove('playing');
+  const durMs = parseDuration(currentSong.duration);
+  document.getElementById('sp-duration').textContent = durMs ? formatDuration(durMs) : '';
 };
 
 
