@@ -127,6 +127,30 @@
     .empty-lyrics{text-align:center;padding:80px 24px;font-family:var(--font-d);font-size:1.4rem;font-style:italic;color:var(--dim);}
     .empty-hint{font-family:var(--font-m);font-size:.65rem;letter-spacing:.1em;color:#333;margin-top:12px;}
 
+
+    /* ── AUTO-SCROLL / PLAY ── */
+    .play-btn{
+      padding:7px 16px;border-radius:20px;border:none;
+      background:var(--amber);color:#000;font-family:var(--font-m);
+      font-size:.65rem;font-weight:700;cursor:pointer;
+      transition:all .15s;letter-spacing:.05em;flex-shrink:0;
+      display:flex;align-items:center;gap:6px;
+    }
+    .play-btn:hover{background:#ffb830;}
+    .play-btn.playing{background:#3ddc97;color:#000;}
+    .play-btn.playing:hover{background:#2fc484;}
+    .scroll-progress{
+      position:fixed;top:0;left:0;height:2px;
+      background:var(--amber);z-index:200;
+      transition:width .5s linear;pointer-events:none;
+      box-shadow:0 0 6px var(--amber);
+    }
+    .scroll-progress.playing{background:var(--green);box-shadow:0 0 6px var(--green);}
+    .duration-badge{
+      font-size:.58rem;color:#666;letter-spacing:.05em;
+      font-family:var(--font-m);flex-shrink:0;
+    }
+
     /* ── EDITOR ── */
     #editor-page{display:none;}
     .editor-header{
@@ -231,6 +255,10 @@
         <div class="field-label">Capo</div>
         <input class="field-input small" id="ed-capo" type="number" min="0" max="12" placeholder="0">
       </div>
+      <div class="field-group">
+        <div class="field-label">Durée (ex: 3:45)</div>
+        <input class="field-input small" id="ed-duration" type="text" placeholder="3:30" style="width:90px;">
+      </div>
     </div>
     <div class="field-group">
       <div class="field-label">Paroles &amp; Accords</div>
@@ -271,8 +299,11 @@
     </div>
     <span class="key-badge" id="sp-key"></span>
     <span class="capo-info" id="sp-capo"></span>
+    <span class="duration-badge" id="sp-duration"></span>
+    <button class="play-btn" id="play-scroll-btn" onclick="toggleAutoScroll()">▶ Play</button>
     <button class="edit-song-btn" onclick="openEditor(currentSongIdx)">✏ Éditer</button>
   </div>
+  <div class="scroll-progress" id="scroll-progress" style="width:0%"></div>
   <div class="lyrics-wrap">
     <div class="lyrics-block" id="lyrics-block"></div>
   </div>
@@ -448,6 +479,11 @@ function openSong(idx) {
   document.getElementById('sp-key').textContent = currentSong.key || '';
   document.getElementById('sp-capo').textContent = currentSong.capo ? `capo ${currentSong.capo}` : '';
 
+  stopAutoScroll();
+  document.getElementById('scroll-progress').style.width = '0%';
+  document.getElementById('scroll-progress').classList.remove('playing');
+  const durMs = parseDuration(currentSong.duration);
+  document.getElementById('sp-duration').textContent = durMs ? formatDuration(durMs) : '';
   document.getElementById('chord-toggle').classList.add('active');
   document.getElementById('chord-toggle').textContent = 'Visibles';
   document.getElementById('t-val').textContent = 'Original';
@@ -533,6 +569,7 @@ function openEditor(idx){
   document.getElementById('ed-key').value    = s.key    || '';
   document.getElementById('ed-capo').value   = s.capo   || 0;
   document.getElementById('ed-lyrics').value = s.lyrics || '';
+  document.getElementById('ed-duration').value = s.duration || '';
 
   document.getElementById('song-page').style.display  = 'none';
   document.getElementById('editor-page').style.display = 'block';
@@ -552,6 +589,7 @@ function saveEdits(){
     artist: document.getElementById('ed-artist').value.trim(),
     key:    document.getElementById('ed-key').value.trim(),
     capo:   parseInt(document.getElementById('ed-capo').value)||0,
+    duration: document.getElementById('ed-duration').value.trim(),
     lyrics: document.getElementById('ed-lyrics').value,
   };
   localStorage.setItem('pedros_overrides', JSON.stringify(localOverrides));
@@ -600,6 +638,100 @@ openSong = function(idx){
   _origOpenSong(idx);
   SONGS[idx] = orig;
   currentSong = merged;
+};
+
+
+// ── AUTO-SCROLL ──
+let scrollRaf = null;
+let scrollPlaying = false;
+let scrollStart = null;
+let scrollStartY = 0;
+let scrollTotalDist = 0;
+let scrollDuration = 0; // ms
+
+function parseDuration(str) {
+  if(!str) return 0;
+  const parts = str.split(':').map(Number);
+  if(parts.length === 2) return (parts[0]*60 + parts[1]) * 1000;
+  if(parts.length === 1) return parts[0] * 1000;
+  return 0;
+}
+
+function formatDuration(ms) {
+  if(!ms) return '';
+  const s = Math.round(ms/1000);
+  return Math.floor(s/60)+':'+(s%60).toString().padStart(2,'0');
+}
+
+function toggleAutoScroll() {
+  if(scrollPlaying) {
+    stopAutoScroll();
+  } else {
+    startAutoScroll();
+  }
+}
+
+function startAutoScroll() {
+  const dur = parseDuration(currentSong.duration);
+  if(!dur) {
+    // No duration — prompt user to set it in editor
+    showToast('⏱ Ajoutez la durée dans l'éditeur');
+    return;
+  }
+  scrollDuration = dur;
+  scrollStartY = window.scrollY;
+  // Total scrollable distance
+  scrollTotalDist = document.body.scrollHeight - window.innerHeight - scrollStartY;
+  if(scrollTotalDist <= 0) return;
+
+  scrollPlaying = true;
+  scrollStart = null;
+
+  const btn = document.getElementById('play-scroll-btn');
+  btn.textContent = '⏹ Stop';
+  btn.classList.add('playing');
+  document.getElementById('scroll-progress').classList.add('playing');
+
+  function step(ts) {
+    if(!scrollPlaying) return;
+    if(!scrollStart) scrollStart = ts;
+    const elapsed = ts - scrollStart;
+    const progress = Math.min(elapsed / scrollDuration, 1);
+
+    // Smooth linear scroll
+    const targetY = scrollStartY + scrollTotalDist * progress;
+    window.scrollTo(0, targetY);
+
+    // Progress bar
+    document.getElementById('scroll-progress').style.width = (progress * 100) + '%';
+
+    if(progress < 1) {
+      scrollRaf = requestAnimationFrame(step);
+    } else {
+      stopAutoScroll(true);
+    }
+  }
+  scrollRaf = requestAnimationFrame(step);
+}
+
+function stopAutoScroll(finished) {
+  scrollPlaying = false;
+  if(scrollRaf) { cancelAnimationFrame(scrollRaf); scrollRaf = null; }
+  const btn = document.getElementById('play-scroll-btn');
+  btn.textContent = '▶ Play';
+  btn.classList.remove('playing');
+  if(!finished) {
+    document.getElementById('scroll-progress').style.width = '0%';
+    document.getElementById('scroll-progress').classList.remove('playing');
+  }
+}
+
+// Stop scroll when leaving song page
+const _origGoHome = goHome;
+goHome = function() {
+  stopAutoScroll();
+  document.getElementById('scroll-progress').style.width = '0%';
+  _origGoHome();
 };
 
 // ── INIT ──
